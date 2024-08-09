@@ -1,4 +1,5 @@
 use ansi_term::Style;
+use lazy_static::lazy_static;
 
 use atty::Stream;
 use clap::{ErrorKind, IntoApp, Parser};
@@ -9,6 +10,10 @@ use std::{
     path::Path,
 };
 use unicode_segmentation::UnicodeSegmentation;
+
+lazy_static! {
+    static ref ANSI_RE: Regex = Regex::new(r"\x1B\[\d+(;\d+)*m").unwrap();
+}
 
 #[derive(Parser, Debug)]
 #[clap(
@@ -102,7 +107,9 @@ fn style_line(
     let mut last_end_idx: usize = 0;
     let mut styled_line = "".to_owned();
 
-    for reg_match in re.find_iter(unstyled_line) {
+    let unstyled_line = ANSI_RE.replace_all(unstyled_line, "");
+
+    for reg_match in re.find_iter(unstyled_line.as_ref()) {
         let start_idx = reg_match.start();
         let end_idx = reg_match.end();
         styled_line.push_str(
